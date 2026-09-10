@@ -1,6 +1,6 @@
 """AI Service Configuration"""
 
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 from typing import Literal
 
 
@@ -15,10 +15,6 @@ class Settings(BaseSettings):
 
     # Matching
     SIMILARITY_THRESHOLD: float = 0.85
-
-    # Server callback (Deprecating slowly)
-    SERVER_URL: str = "http://localhost:5000"
-    SERVER_API_KEY: str = ""
 
     # Deployment / CORS
     FRONTEND_URL: str = "http://localhost:3000"
@@ -48,9 +44,7 @@ class Settings(BaseSettings):
     # Logging
     LOG_LEVEL: str = "INFO"
 
-    class Config:
-        env_file = ".env"
-        case_sensitive = True
+    model_config = SettingsConfigDict(env_file=".env", case_sensitive=True, extra="ignore")
 
 
 settings = Settings()

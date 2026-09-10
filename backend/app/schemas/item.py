@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, ConfigDict
 from typing import Optional, List, Dict, Any
 from datetime import datetime
 from enum import Enum
@@ -17,8 +17,7 @@ class UserMinResponse(BaseModel):
     email: str
     avatar_url: Optional[str] = None
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 class ItemBase(BaseModel):
     title: str = Field(..., min_length=2, max_length=200)
@@ -109,8 +108,7 @@ class ItemResponse(BaseModel):
     
     reporter: Optional[UserMinResponse] = None
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 class PaginatedItemResponse(BaseModel):
     items: List[ItemResponse]

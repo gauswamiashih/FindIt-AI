@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 from typing import Optional, List
 from datetime import datetime
 
@@ -11,8 +11,7 @@ class UserMinInfo(BaseModel):
     email: str
     avatar_url: Optional[str] = None
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 class MessageResponse(BaseModel):
     id: int
@@ -26,8 +25,7 @@ class MessageResponse(BaseModel):
     createdAt: Optional[datetime] = None
     sender: Optional[UserMinInfo] = None
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 class ChatResponse(BaseModel):
     id: int
@@ -42,8 +40,7 @@ class ChatResponse(BaseModel):
     other_user: Optional[UserMinInfo] = None
     last_message: Optional[MessageResponse] = None
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 class ChatListResponse(BaseModel):
     chats: List[ChatResponse]
