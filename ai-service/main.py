@@ -10,7 +10,7 @@ from contextlib import asynccontextmanager
 import logging
 
 from app.config import settings
-from app.routers import match, health, embeddings
+from app.routers import match, health, embeddings, auth
 from app.services.clip_service import CLIPService
 
 # ─── Logging ──────────────────────────────────────────────────────────────────
@@ -69,6 +69,7 @@ api_router = APIRouter(prefix="/api/v1")
 api_router.include_router(health.router, tags=["Health"])
 api_router.include_router(match.router, prefix="/match", tags=["Matching"])
 api_router.include_router(embeddings.router, prefix="/embeddings", tags=["Embeddings"])
+api_router.include_router(auth.router, prefix="/auth", tags=["Auth"])
 
 app.include_router(api_router)
 
