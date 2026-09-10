@@ -9,9 +9,9 @@ from fastapi.middleware.gzip import GZipMiddleware
 from contextlib import asynccontextmanager
 import logging
 
-from app.config import settings
-from app.routers import match, health, embeddings, auth
-from app.services.clip_service import CLIPService
+from app.core.config import settings
+from app.api.routes import match, health, embeddings, auth
+from app.ai.clip_service import CLIPService
 
 # ─── Logging ──────────────────────────────────────────────────────────────────
 logging.basicConfig(

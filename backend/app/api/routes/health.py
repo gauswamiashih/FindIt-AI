@@ -18,7 +18,7 @@ class HealthResponse(BaseModel):
 @router.get("/health", response_model=HealthResponse)
 async def health_check(request: Request):
     """Health check endpoint for Docker and load balancers."""
-    from app.config import settings
+    from app.core.config import settings
     clip = getattr(request.app.state, "clip", None)
     return HealthResponse(
         status="ok",

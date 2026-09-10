@@ -54,7 +54,7 @@ except ImportError as e:
 # Test 3: App config
 print("\n[3] App config:")
 try:
-    from app.config import settings
+    from app.core.config import settings
     print(f"  CLIP_MODEL: {settings.CLIP_MODEL}")
     print(f"  HOST: {settings.HOST}")
     print(f"  PORT: {settings.PORT}")
@@ -66,7 +66,7 @@ except Exception as e:
 # Test 4: Router imports
 print("\n[4] Router imports:")
 try:
-    from app.routers import match, health, embeddings
+    from app.api.routes import match, health, embeddings
     print(f"  match router: OK")
     print(f"  health router: OK")
     print(f"  embeddings router: OK")
@@ -76,7 +76,7 @@ except Exception as e:
 # Test 5: CLIP service import
 print("\n[5] CLIP service import:")
 try:
-    from app.services.clip_service import CLIPService
+    from app.ai.clip_service import CLIPService
     clip = CLIPService()
     print(f"  CLIPService: OK")
     print(f"  Device: {clip.device}")

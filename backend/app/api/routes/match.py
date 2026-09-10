@@ -10,7 +10,7 @@ from fastapi import APIRouter, Request, HTTPException, UploadFile, File, Form
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, HttpUrl
 
-from app.config import settings
+from app.core.config import settings
 
 logger = logging.getLogger("findit.match")
 router = APIRouter()
