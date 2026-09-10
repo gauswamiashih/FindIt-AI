@@ -18,65 +18,74 @@ import { formatDistanceToNow } from 'date-fns'
 import InfiniteScroll from 'react-infinite-scroll-component'
 
 // ─── Item Card ────────────────────────────────────────────────────────────────
-const ItemCard = ({ item, type }) => (
-  <motion.div
-    initial={{ opacity: 0, y: 10 }}
-    animate={{ opacity: 1, y: 0 }}
-    whileHover={{ y: -3 }}
-    className="card card-hover group"
-  >
-    <Link to={`/items/${type}/${item._id}`}>
-      <div className="aspect-video rounded-xl overflow-hidden mb-3 bg-dark-800 relative">
-        <img
-          src={item.images?.[0]?.url}
-          alt={item.title}
-          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-          loading="lazy"
-        />
-        <div className="absolute top-2 left-2 flex gap-1.5">
-          <Badge variant={type === 'lost' ? 'danger' : 'success'}>
-            {type === 'lost' ? '🔴 Lost' : '🟢 Found'}
-          </Badge>
-          {item.isVerified && <Badge variant="accent">✓ Verified</Badge>}
-        </div>
-        {item.reward?.offered && (
-          <div className="absolute top-2 right-2">
-            <Badge variant="warning">💰 Reward</Badge>
-          </div>
-        )}
-      </div>
+const ItemCard = ({ item, type }) => {
+  const itemType = type || item.item_type || item.type || 'lost'
+  const itemId = item._id || item.id
 
-      <div className="space-y-2">
-        <h3 className="font-bold text-sm leading-snug group-hover:text-primary-300 transition-colors line-clamp-2">
-          {item.title}
-        </h3>
-        <div className="flex items-center gap-2 flex-wrap">
-          <Badge variant="primary">{item.category}</Badge>
-          {item.color && <span className="text-xs text-dark-100/50">{item.color}</span>}
-        </div>
-        {item.location?.city && (
-          <p className="text-xs text-dark-100/40 flex items-center gap-1">
-            <MapPin size={10} />
-            {item.location.city}, {item.location.country || ''}
-          </p>
-        )}
-        <div className="flex items-center justify-between pt-1">
-          <div className="flex items-center gap-1.5">
-            <img
-              src={item.reportedBy?.avatarUrl || item.reportedBy?.avatar?.url}
-              alt={item.reportedBy?.name}
-              className="w-5 h-5 rounded-full"
-            />
-            <span className="text-xs text-dark-100/40">{item.reportedBy?.name}</span>
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      whileHover={{ y: -3 }}
+      className="card card-hover group"
+    >
+      <Link to={`/items/${itemType}/${itemId}`}>
+        <div className="aspect-video rounded-xl overflow-hidden mb-3 bg-dark-800 relative">
+          <img
+            src={item.images?.[0]?.url || item.image_url || 'https://via.placeholder.com/400x225?text=No+Image'}
+            alt={item.title}
+            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+            loading="lazy"
+          />
+          <div className="absolute top-2 left-2 flex gap-1.5">
+            <Badge variant={itemType === 'lost' ? 'danger' : 'success'}>
+              {itemType === 'lost' ? '🔴 Lost' : '🟢 Found'}
+            </Badge>
+            {item.distance_km !== undefined && item.distance_km !== null && (
+              <Badge variant="accent">📍 {item.distance_km} km</Badge>
+            )}
           </div>
-          <span className="text-xs text-dark-100/30">
-            {formatDistanceToNow(new Date(item.createdAt), { addSuffix: true })}
-          </span>
+          {item.reward?.offered && (
+            <div className="absolute top-2 right-2">
+              <Badge variant="warning">💰 Reward</Badge>
+            </div>
+          )}
         </div>
-      </div>
-    </Link>
-  </motion.div>
-)
+
+        <div className="space-y-2">
+          <h3 className="font-bold text-sm leading-snug group-hover:text-primary-300 transition-colors line-clamp-2">
+            {item.title}
+          </h3>
+          <div className="flex items-center gap-2 flex-wrap">
+            <Badge variant="primary">{item.category}</Badge>
+            {item.color && <span className="text-xs text-dark-100/50">{item.color}</span>}
+          </div>
+          {(item.location?.city || item.location_city || item.location_address) && (
+            <p className="text-xs text-dark-100/40 flex items-center gap-1">
+              <MapPin size={10} />
+              {item.location_city || item.location?.city || item.location_address}
+            </p>
+          )}
+          <div className="flex items-center justify-between pt-1">
+            <div className="flex items-center gap-1.5">
+              {item.reporter?.avatar_url && (
+                <img
+                  src={item.reporter.avatar_url}
+                  alt={item.reporter.name}
+                  className="w-5 h-5 rounded-full"
+                />
+              )}
+              <span className="text-xs text-dark-100/40">{item.reporter?.name || 'Anonymous'}</span>
+            </div>
+            <span className="text-xs text-dark-100/30">
+              {item.createdAt || item.created_at ? formatDistanceToNow(new Date(item.createdAt || item.created_at), { addSuffix: true }) : ''}
+            </span>
+          </div>
+        </div>
+      </Link>
+    </motion.div>
+  )
+}
 
 // ─── Search Page ──────────────────────────────────────────────────────────────
 export default function SearchPage() {
@@ -90,23 +99,23 @@ export default function SearchPage() {
     type: searchParams.get('type') || 'all',
     category: searchParams.get('category') || '',
     color: searchParams.get('color') || '',
-    startDate: searchParams.get('startDate') || '',
-    endDate: searchParams.get('endDate') || '',
+    sort: searchParams.get('sort') || 'recent',
+    radius_km: searchParams.get('radius_km') || '',
   })
 
   const debouncedQ = useDebounce(filters.q, 400)
 
   const { data, isLoading, isFetching } = useQuery({
-    queryKey: ['search', debouncedQ, filters.type, filters.category, filters.color, filters.startDate, filters.endDate],
+    queryKey: ['search', debouncedQ, filters.type, filters.category, filters.color, filters.sort, filters.radius_km],
     queryFn: () => searchService.search({
       q: debouncedQ,
-      type: filters.type,
-      category: filters.category,
-      color: filters.color,
-      startDate: filters.startDate,
-      endDate: filters.endDate,
+      type: filters.type === 'all' ? undefined : filters.type,
+      category: filters.category || undefined,
+      color: filters.color || undefined,
+      sort: filters.sort,
+      radius_km: filters.radius_km || undefined,
     }),
-    select: d => d.data.data,
+    select: d => d.data,
   })
 
   const updateFilter = (key, value) => {
@@ -118,17 +127,17 @@ export default function SearchPage() {
   }
 
   const clearFilters = () => {
-    const reset = { q: '', type: 'all', category: '', color: '', startDate: '', endDate: '' }
+    const reset = { q: '', type: 'all', category: '', color: '', sort: 'recent', radius_km: '' }
     setFilters(reset)
     setSearchParams({})
   }
 
-  const allItems = [
+  const allItems = data?.items || [
     ...(data?.results?.lost || []).map(i => ({ ...i, _type: 'lost' })),
     ...(data?.results?.found || []).map(i => ({ ...i, _type: 'found' })),
   ]
 
-  const hasActiveFilters = filters.category || filters.color || filters.startDate || filters.endDate
+  const hasActiveFilters = filters.category || filters.color || filters.radius_km || filters.sort !== 'recent'
 
   return (
     <div className="p-6 max-w-7xl mx-auto">

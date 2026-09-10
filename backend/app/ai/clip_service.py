@@ -13,13 +13,13 @@ import base64
 
 import torch
 import numpy as np
-import open_clip
 from PIL import Image, ImageOps
 import httpx
 
 from app.core.config import settings
 
 logger = logging.getLogger("findit.clip")
+
 
 
 class CLIPService:
@@ -43,6 +43,7 @@ class CLIPService:
     def _load_model_sync(self):
         """Synchronous model loading."""
         try:
+            import open_clip
             logger.info(f"Loading CLIP {settings.CLIP_MODEL} on {self.device}...")
             self.model, _, self.preprocess = open_clip.create_model_and_transforms(
                 settings.CLIP_MODEL,
@@ -55,6 +56,7 @@ class CLIPService:
         except Exception as e:
             logger.error(f"❌ Failed to load CLIP model: {e}")
             raise
+
 
     def _preprocess_image(self, image_data: Union[bytes, str]) -> torch.Tensor:
         """

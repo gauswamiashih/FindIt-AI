@@ -1,42 +1,37 @@
 version: '3.9'
 
 services:
-  # ─── MongoDB ───────────────────────────────────────────────────────────────
-  mongodb:
-    image: mongo:7.0
-    container_name: findit-mongodb
+  # ─── Redis Broker ──────────────────────────────────────────────────────────
+  redis:
+    image: redis:7.2-alpine
+    container_name: findit-redis
     restart: unless-stopped
-    environment:
-      MONGO_INITDB_ROOT_USERNAME: admin
-      MONGO_INITDB_ROOT_PASSWORD: password
-      MONGO_INITDB_DATABASE: findit
     ports:
-      - "27017:27017"
-    volumes:
-      - mongodb_data:/data/db
-      - ./docs/mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro
+      - "6379:6379"
     networks:
       - findit-network
     healthcheck:
-      test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017/findit --quiet
+      test: ["CMD", "redis-cli", "ping"]
       interval: 10s
-      timeout: 10s
+      timeout: 5s
       retries: 5
-      start_period: 20s
 
-  # ─── AI Service ────────────────────────────────────────────────────────────
-  ai-service:
+  # ─── Python FastAPI Backend ────────────────────────────────────────────────
+  backend:
     build:
-      context: ./ai-service
+      context: ./backend
       dockerfile: Dockerfile
-    container_name: findit-ai
+    container_name: findit-backend
     restart: unless-stopped
     env_file:
-      - ./ai-service/.env
+      - ./backend/.env
+    environment:
+      - REDIS_URL=redis://redis:6379/0
     ports:
       - "8000:8000"
-    volumes:
-      - ai_models:/root/.cache/clip
+    depends_on:
+      redis:
+        condition: service_healthy
     networks:
       - findit-network
     healthcheck:
@@ -44,75 +39,43 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 60s
+      start_period: 30s
 
-  # ─── Backend API ───────────────────────────────────────────────────────────
-  server:
+  # ─── Celery Background Worker ──────────────────────────────────────────────
+  celery-worker:
     build:
-      context: ./server
+      context: ./backend
       dockerfile: Dockerfile
-    container_name: findit-server
+    container_name: findit-celery-worker
+    command: celery -A app.tasks.celery_app worker --loglevel=info -P solo
     restart: unless-stopped
     env_file:
-      - ./server/.env
+      - ./backend/.env
     environment:
-      - MONGODB_URI=mongodb://admin:password@mongodb:27017/findit?authSource=admin
-      - AI_SERVICE_URL=http://ai-service:8000
-    ports:
-      - "5000:5000"
-    volumes:
-      - server_uploads:/app/uploads
+      - REDIS_URL=redis://redis:6379/0
     depends_on:
-      mongodb:
+      redis:
         condition: service_healthy
-      ai-service:
+      backend:
         condition: service_healthy
     networks:
       - findit-network
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:5000/api/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
 
-  # ─── Frontend ──────────────────────────────────────────────────────────────
+  # ─── React Frontend ────────────────────────────────────────────────────────
   client:
     build:
       context: ./client
       dockerfile: Dockerfile
       args:
-        VITE_API_URL: /api
-        VITE_SOCKET_URL: ""
+        VITE_API_URL: http://localhost:8000
     container_name: findit-client
     restart: unless-stopped
     ports:
       - "3000:80"
     depends_on:
-      - server
+      - backend
     networks:
       - findit-network
-
-  # ─── Nginx Reverse Proxy ───────────────────────────────────────────────────
-  nginx:
-    image: nginx:alpine
-    container_name: findit-nginx
-    restart: unless-stopped
-    ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - ./docs/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
-      - ./docs/nginx/ssl:/etc/nginx/ssl:ro
-    depends_on:
-      - client
-      - server
-    networks:
-      - findit-network
-
-volumes:
-  mongodb_data:
-  ai_models:
-  server_uploads:
 
 networks:
   findit-network:

@@ -1,64 +1,112 @@
 /**
  * Socket Context
- * Manages Socket.io connection and real-time events
+ * Manages WebSocket connection to FastAPI real-time chat backend
  */
 
-import { createContext, useContext, useEffect, useState } from 'react'
-import { io } from 'socket.io-client'
+import { createContext, useContext, useEffect, useState, useRef, useCallback } from 'react'
 import { useAuth } from './AuthContext'
 
 const SocketContext = createContext(null)
 
 export const SocketProvider = ({ children }) => {
   const { user, isAuthenticated } = useAuth()
-  const [socket, setSocket]       = useState(null)
+  const [activeSocket, setActiveSocket] = useState(null)
   const [onlineUsers, setOnlineUsers] = useState([])
+  const wsRef = useRef(null)
 
-  useEffect(() => {
-    if (!isAuthenticated) {
-      socket?.disconnect()
-      setSocket(null)
-      return
+  const connectToChat = useCallback((chatId, onMessageReceived) => {
+    if (!isAuthenticated || !chatId) return null
+    const token = localStorage.getItem('accessToken')
+    if (!token) return null
+
+    if (wsRef.current) {
+      wsRef.current.close()
     }
 
-    const token = localStorage.getItem('accessToken')
-    const s = io(import.meta.env.VITE_SOCKET_URL || '', {
-      auth: { token },
-      transports: ['websocket', 'polling'],
-      reconnection: true,
-      reconnectionAttempts: 5,
-      reconnectionDelay: 1000,
-    })
+    const envWsUrl = import.meta.env.VITE_WS_URL
+    let wsBaseUrl = envWsUrl
+    if (!wsBaseUrl) {
+      const loc = window.location
+      const protocol = loc.protocol === 'https:' ? 'wss:' : 'ws:'
+      const host = loc.host || 'localhost:8000'
+      wsBaseUrl = `${protocol}//${host}`
+    }
 
-    s.on('connect', () => {
-      console.log('🔌 Socket connected:', s.id)
-    })
+    const wsUrl = `${wsBaseUrl.replace(/\/$/, '')}/api/v1/chats/ws/${chatId}?token=${encodeURIComponent(token)}`
+    
+    try {
+      const ws = new WebSocket(wsUrl)
 
-    s.on('disconnect', (reason) => {
-      console.log('🔌 Socket disconnected:', reason)
-    })
+      ws.onopen = () => {
+        console.log('🔌 WebSocket connected to chat:', chatId)
+      }
 
-    s.on('user:online', ({ userId, online }) => {
-      setOnlineUsers(prev =>
-        online
-          ? [...new Set([...prev, userId])]
-          : prev.filter(id => id !== userId)
-      )
-    })
+      ws.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data)
+          if (onMessageReceived) {
+            onMessageReceived(data)
+          }
+        } catch (err) {
+          console.error('Error parsing WebSocket message:', err)
+        }
+      }
 
-    setSocket(s)
+      ws.onerror = (err) => {
+        console.warn('WebSocket error:', err)
+      }
 
-    return () => {
-      s.disconnect()
+      ws.onclose = () => {
+        console.log('🔌 WebSocket closed for chat:', chatId)
+      }
+
+      wsRef.current = ws
+      setActiveSocket(ws)
+      return ws
+    } catch (err) {
+      console.error('Failed to create WebSocket:', err)
+      return null
     }
   }, [isAuthenticated])
 
-  const joinChat = (chatId) => socket?.emit('chat:join', chatId)
-  const leaveChat = (chatId) => socket?.emit('chat:leave', chatId)
-  const sendTyping = (chatId, isTyping) => socket?.emit('chat:typing', { chatId, isTyping })
+  const disconnectSocket = useCallback(() => {
+    if (wsRef.current) {
+      wsRef.current.close()
+      wsRef.current = null
+      setActiveSocket(null)
+    }
+  }, [])
+
+  const sendMessage = useCallback((text) => {
+    if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+      wsRef.current.send(JSON.stringify({ text }))
+      return true
+    }
+    return false
+  }, [])
+
+  // Dummy fallback helpers for backwards compatibility
+  const joinChat = useCallback((chatId) => {}, [])
+  const leaveChat = useCallback((chatId) => disconnectSocket(), [disconnectSocket])
+  const sendTyping = useCallback((chatId, isTyping) => {}, [])
+
+  useEffect(() => {
+    return () => {
+      disconnectSocket()
+    }
+  }, [disconnectSocket])
 
   return (
-    <SocketContext.Provider value={{ socket, onlineUsers, joinChat, leaveChat, sendTyping }}>
+    <SocketContext.Provider value={{
+      socket: activeSocket,
+      onlineUsers,
+      connectToChat,
+      disconnectSocket,
+      sendMessage,
+      joinChat,
+      leaveChat,
+      sendTyping
+    }}>
       {children}
     </SocketContext.Provider>
   )

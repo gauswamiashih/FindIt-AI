@@ -15,20 +15,21 @@ import { useDocumentTitle } from '../hooks/index'
 
 // ─── Data ─────────────────────────────────────────────────────────────────────
 const stats = [
-  { value: '50K+', label: 'Items Returned',   icon: HandHeart },
-  { value: '98%',  label: 'AI Accuracy',      icon: Brain },
+  { value: '50K+', label: 'Items Processed', icon: HandHeart },
+  { value: 'CLIP', label: 'Vision AI Core',  icon: Brain },
   { value: '120+', label: 'Cities Covered',   icon: MapPin },
-  { value: '200K+',label: 'Happy Users',      icon: Users },
+  { value: '200K+',label: 'Platform Users',   icon: Users },
 ]
 
 const features = [
   {
     icon: Brain,
     title: 'AI Image Matching',
-    description: 'CLIP-powered vision AI analyzes your item photos and finds visual matches with 98% accuracy.',
+    description: 'CLIP-powered vision AI analyzes your item photos and calculates high-precision vector matches.',
     color: 'from-primary-500 to-purple-600',
     glow:  'rgba(79,70,229,0.3)',
   },
+
   {
     icon: Zap,
     title: 'Instant Notifications',
@@ -170,8 +171,9 @@ export default function LandingPage() {
             transition={{ delay: 0.2 }}
             className="text-lg md:text-xl text-dark-100/60 max-w-2xl mx-auto mb-10 leading-relaxed"
           >
-            FindIt uses advanced AI to automatically match lost and found items with{' '}
-            <strong className="text-dark-100/90">98% accuracy</strong>. Upload a photo,
+            FindIt uses advanced PyTorch CLIP AI to automatically match lost and found items with{' '}
+            <strong className="text-dark-100/90">high visual precision</strong>. Upload a photo,
+
             describe your item, and let AI do the rest.
           </motion.p>
 

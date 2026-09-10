@@ -22,10 +22,11 @@ if not db_url:
     db_url = "sqlite:///./findit.db"
 
 if db_url.startswith("postgres://"):
-    db_url = db_url.replace("postgres://", "postgresql+psycopg2://", 1)
-elif db_url.startswith("postgresql://"):
-    db_url = db_url.replace("postgresql://", "postgresql+psycopg2://", 1)
+    db_url = db_url.replace("postgres://", "postgresql+psycopg://", 1)
+elif db_url.startswith("postgresql://") and not db_url.startswith("postgresql+"):
+    db_url = db_url.replace("postgresql://", "postgresql+psycopg://", 1)
 config.set_main_option("sqlalchemy.url", db_url)
+
 
 # Interpret the config file for Python logging.
 # This line sets up loggers basically.

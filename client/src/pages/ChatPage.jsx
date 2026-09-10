@@ -74,7 +74,7 @@ export default function ChatPage() {
   useDocumentTitle('Messages')
   const { chatId }    = useParams()
   const { user }      = useAuth()
-  const { socket, joinChat, leaveChat, sendTyping } = useSocket()
+  const { connectToChat, disconnectSocket, sendMessage: wsSendMessage } = useSocket()
   const queryClient   = useQueryClient()
 
   const [messages, setMessages]   = useState([])
@@ -90,7 +90,7 @@ export default function ChatPage() {
   const { data: chatsData } = useQuery({
     queryKey: ['chats'],
     queryFn:  () => chatService.getChats(),
-    select:   d => d.data.data,
+    select:   d => d.data.chats || d.data.data || [],
     refetchInterval: 30000,
   })
 
@@ -98,38 +98,29 @@ export default function ChatPage() {
   const { data: msgsData, isLoading: msgsLoading } = useQuery({
     queryKey: ['chat-messages', activeChat],
     queryFn:  () => chatService.getMessages(activeChat),
-    select:   d => d.data.data.messages,
+    select:   d => d.data.messages || d.data.data?.messages || [],
     enabled:  !!activeChat,
     onSuccess: (data) => setMessages(data || []),
   })
 
   useEffect(() => { if (msgsData) setMessages(msgsData) }, [msgsData])
 
-  // ─── Socket.io ───────────────────────────────────────────────────────────
+  // ─── WebSocket Connection ──────────────────────────────────────────────────
   useEffect(() => {
-    if (!socket || !activeChat) return
-    joinChat(activeChat)
-
-    const handleNewMessage = (msg) => {
-      setMessages(prev => [...prev, msg])
-      if (msg.sender._id !== user?._id) {
-        queryClient.invalidateQueries({ queryKey: ['chats'] })
-      }
-    }
-
-    const handleTyping = ({ userId, isTyping }) => {
-      if (userId !== user?._id) setOtherTyping(isTyping)
-    }
-
-    socket.on('chat:message', handleNewMessage)
-    socket.on('chat:typing',  handleTyping)
+    if (!activeChat) return
+    connectToChat(activeChat, (msg) => {
+      setMessages(prev => {
+        const exists = prev.some(m => m.id === msg.id || m._id === msg.id)
+        if (exists) return prev
+        return [...prev, msg]
+      })
+      queryClient.invalidateQueries({ queryKey: ['chats'] })
+    })
 
     return () => {
-      socket.off('chat:message', handleNewMessage)
-      socket.off('chat:typing',  handleTyping)
-      leaveChat(activeChat)
+      disconnectSocket()
     }
-  }, [socket, activeChat])
+  }, [activeChat, connectToChat, disconnectSocket, queryClient])
 
   // ─── Scroll to bottom ─────────────────────────────────────────────────────
   useEffect(() => {

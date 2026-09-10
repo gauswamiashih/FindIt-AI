@@ -1,80 +1,38 @@
 /**
  * Axios API Service
- * Handles JWT refresh on 401 errors automatically
+ * Attaches Supabase JWT Bearer token and handles 401 response errors.
  */
 
 import axios from 'axios'
 
 const api = axios.create({
-  baseURL:         import.meta.env.VITE_API_URL || '/api',
+  baseURL: import.meta.env.VITE_API_URL || '/api/v1',
   withCredentials: true,
-  timeout:         30000,
+  timeout: 30000,
 })
 
 // ─── Request Interceptor ───────────────────────────────────────────────────────
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('accessToken')
-    if (token) config.headers.Authorization = `Bearer ${token}`
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`
+    }
     return config
   },
   (error) => Promise.reject(error)
 )
 
-// ─── Response Interceptor – Auto Refresh ──────────────────────────────────────
-let isRefreshing = false
-let failedQueue = []
-
-const processQueue = (error, token = null) => {
-  failedQueue.forEach((prom) => {
-    if (error) prom.reject(error)
-    else       prom.resolve(token)
-  })
-  failedQueue = []
-}
-
+// ─── Response Interceptor ──────────────────────────────────────────────────────
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
-    const originalRequest = error.config
+    const status = error.response?.status
 
-    if (error.response?.status === 401 && !originalRequest._retry && !originalRequest.url.includes('/auth/login') && !originalRequest.url.includes('/auth/refresh-token')) {
-      if (isRefreshing) {
-        return new Promise((resolve, reject) => {
-          failedQueue.push({ resolve, reject })
-        }).then((token) => {
-          originalRequest.headers.Authorization = `Bearer ${token}`
-          return api(originalRequest)
-        })
-      }
-
-      originalRequest._retry = true
-      isRefreshing = true
-
-      try {
-        const refreshToken = localStorage.getItem('refreshToken')
-        const { data } = await axios.post(
-          `${import.meta.env.VITE_API_URL || '/api'}/auth/refresh-token`,
-          { refreshToken },
-          { withCredentials: true }
-        )
-        const newAccessToken = data.data.accessToken
-        localStorage.setItem('accessToken',  newAccessToken)
-        localStorage.setItem('refreshToken', data.data.refreshToken)
-
-        api.defaults.headers.common.Authorization = `Bearer ${newAccessToken}`
-        processQueue(null, newAccessToken)
-        return api(originalRequest)
-      } catch (refreshError) {
-        processQueue(refreshError, null)
-        localStorage.removeItem('accessToken')
-        localStorage.removeItem('refreshToken')
-        localStorage.removeItem('user')
-        window.location.href = '/login'
-        return Promise.reject(refreshError)
-      } finally {
-        isRefreshing = false
-      }
+    // On 401 Unauthorized from FastAPI, clear invalid state
+    if (status === 401 && !error.config?.url?.includes('/auth/me')) {
+      localStorage.removeItem('accessToken')
+      localStorage.removeItem('user')
     }
 
     return Promise.reject(error)
