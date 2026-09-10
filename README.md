@@ -33,14 +33,27 @@
 ## 🏗️ Architecture
 
 ```
-┌─────────────────┐     ┌──────────────────────┐     ┌─────────────────────┐
-│   React Client  │────▶│   Express.js Server  │────▶│  FastAPI AI Service │
-│  (Vite + TW)   │◀────│  (Node.js + MongoDB) │◀────│  (CLIP ViT-B/32)   │
-│    Port 3000    │     │      Port 5000       │     │      Port 8000      │
-└─────────────────┘     └──────────────────────┘     └─────────────────────┘
-                               │         │
-                          Socket.io  Cloudinary
-                          (WS chat)  (Images)
+        Vercel (Production)
+                  │
+                  ▼
+          React/Vite Frontend
+             (client/)
+                  │
+             HTTPS REST API
+             (WebSocket)
+                  │
+                  ▼
+          FastAPI Backend
+       (ai-service/backend)
+                  │
+        ┌─────────┼─────────┐
+        ▼         ▼         ▼
+    Supabase    Redis      AI/ML
+   PostgreSQL             Processing
+        │
+        ▼
+   Cloudinary
+    Storage
 ```
 
 ---
@@ -48,40 +61,29 @@
 ## 🚀 Quick Start
 
 ### Prerequisites
-- Node.js ≥ 18
 - Python ≥ 3.10
-- MongoDB (local or Atlas)
+- Node.js ≥ 18
+- Supabase account (for PostgreSQL)
 - Cloudinary account
 
 ### 1. Clone & Setup Environment
 
 ```bash
 # Copy environment files
-cp server/.env.example server/.env
 cp client/.env.example client/.env
 cp ai-service/.env.example ai-service/.env
 
 # Fill in your values in each .env file
 ```
 
-### 2. Start with Docker Compose (Recommended)
+### 2. Manual Start (Development)
 
+**Terminal 1 – Backend (FastAPI):**
 ```bash
-docker-compose up --build
-```
-
-Access:
-- **Client:** http://localhost:3000
-- **API:** http://localhost:5000/api/health
-- **AI Service:** http://localhost:8000/health
-
-### 3. Manual Start (Development)
-
-**Terminal 1 – Server:**
-```bash
-cd server
-npm install
-npm run dev
+cd ai-service
+pip install -r requirements.txt
+alembic upgrade head
+uvicorn main:app --reload --port 8000
 ```
 
 **Terminal 2 – Client:**
@@ -91,130 +93,43 @@ npm install
 npm run dev
 ```
 
-**Terminal 3 – AI Service:**
-```bash
-cd ai-service
-pip install -r requirements.txt
-uvicorn main:app --reload --port 8000
-```
-
----
-
-## 📁 Project Structure
-
-```
-FindIt/
-├── client/                    # React 19 + Vite frontend
-│   ├── src/
-│   │   ├── components/        # Reusable UI & layout components
-│   │   │   ├── layout/        # Navbar, Sidebar, MainLayout, AuthLayout
-│   │   │   └── ui/            # Button, Input, Modal, Card, Avatar...
-│   │   ├── context/           # AuthContext, SocketContext
-│   │   ├── hooks/             # useDebounce, useGeolocation...
-│   │   ├── pages/             # All route pages
-│   │   │   ├── auth/          # Login, Register, Verify, Reset...
-│   │   │   ├── items/         # ReportLost, ReportFound, Detail pages
-│   │   │   └── admin/         # Admin dashboard, users, items, analytics
-│   │   ├── services/          # Axios API functions (api.js + index.js)
-│   │   └── utils/             # Constants, helpers
-│   └── package.json
-│
-├── server/                    # Node.js + Express backend
-│   └── src/
-│       ├── config/            # DB, Cloudinary, Socket.io configs
-│       ├── controllers/       # Auth, Items, Matches, Chat, Admin...
-│       ├── middleware/        # Auth guard, rate limiter, multer, error
-│       ├── models/            # User, LostItem, FoundItem, Match, Chat...
-│       ├── routes/            # Express routers for each domain
-│       └── utils/             # ApiError, ApiResponse, tokens, email, QR
-│
-├── ai-service/                # Python FastAPI AI matching service
-│   ├── app/
-│   │   ├── routers/           # /match, /embed, /health endpoints
-│   │   └── services/          # clip_service.py – CLIP image + text
-│   ├── main.py
-│   └── requirements.txt
-│
-├── docker-compose.yml         # Full stack orchestration
-└── README.md
-```
-
----
-
-## 🤖 AI Matching Pipeline
-
-```
-Found Item Uploaded
-        │
-        ▼
- Image Embeddings (CLIP)
-        │
-        ▼
- Text Embeddings (CLIP tokenizer)
-        │
-        ▼
- Cosine Similarity vs. All Active Lost Items
-        │
-        ▼
- Combined Score = 0.75 × Image + 0.25 × Text
-        │
-        ▼
- Score ≥ 0.85 → Match Created
-        │
-        ▼
- Real-time Notification (Socket.io + Email)
-```
-
----
-
-## 🔐 API Overview
-
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| `POST` | `/api/auth/register` | Create account |
-| `POST` | `/api/auth/login` | Login & get JWT |
-| `GET`  | `/api/lost-items` | List lost items (paginated + geo) |
-| `POST` | `/api/lost-items` | Report lost item |
-| `POST` | `/api/found-items` | Report found item + trigger AI |
-| `GET`  | `/api/matches` | Get my AI matches |
-| `POST` | `/api/matches/:id/confirm` | Confirm match + start chat |
-| `GET`  | `/api/chats` | Get my chats |
-| `POST` | `/api/chats/:id/messages` | Send message |
-| `GET`  | `/api/search?q=wallet` | Full-text search |
-| `GET`  | `/api/admin/stats` | Admin analytics |
-
----
-
-## 🧪 Testing
-
-```bash
-# Server unit tests
-cd server && npm test
-
-# AI service
-cd ai-service && python -m pytest
-
-# E2E (coming soon)
-cd client && npm run test:e2e
-```
-
 ---
 
 ## 🌍 Deployment
 
-### Vercel (Client)
+### 1. Supabase Setup
+- Create a new Supabase project.
+- Get your `DATABASE_URL` and `DIRECT_DATABASE_URL` from Project Settings -> Database.
+- Add these to your backend `.env`.
+
+### 2. Database Migration
+Run Alembic migrations to create tables before starting the server:
 ```bash
-cd client && vercel --prod
+cd ai-service
+alembic upgrade head
 ```
 
-### Render (Server)
-- Build: `npm install`
-- Start: `npm start`
-- Set all env vars from `server/.env.example`
+### 3. Vercel (Frontend Deployment)
+Deploy the React frontend easily on Vercel:
+1. Connect your GitHub repository to Vercel.
+2. Select the `client` directory as the Root Directory.
+3. Add the following Environment Variables in Vercel:
+   - `VITE_API_URL` (e.g., `https://your-fastapi-backend.onrender.com/api/v1`)
+   - `VITE_SOCKET_URL` (e.g., `wss://your-fastapi-backend.onrender.com`)
+   - `VITE_APP_NAME`
+   - `VITE_APP_URL`
+4. Deploy!
 
-### Render (AI Service)
-- Build: `pip install -r requirements.txt`
-- Start: `uvicorn main:app --host 0.0.0.0 --port $PORT`
+### 4. Render / Railway (Backend Deployment)
+Deploy the FastAPI + AI processing backend on Render:
+1. Create a new "Web Service" on Render.
+2. Connect your GitHub repository.
+3. **Root Directory**: `ai-service`
+4. **Build Command**: `pip install -r requirements.txt`
+5. **Start Command**: `uvicorn main:app --host 0.0.0.0 --port $PORT`
+6. Add all environment variables from `ai-service/.env.example`.
+7. **CORS Configuration**: Ensure `FRONTEND_URL` is set to your Vercel URL.
+8. Set the Health Check path to `/api/v1/health`.
 
 ---
 

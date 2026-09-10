@@ -49,17 +49,31 @@ app = FastAPI(
 # ─── Middleware ───────────────────────────────────────────────────────────────
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[settings.SERVER_URL, "http://localhost:5000"],
+    allow_origins=[
+        settings.FRONTEND_URL, 
+        settings.SERVER_URL, 
+        "http://localhost:3000", 
+        "http://localhost:5000"
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 app.add_middleware(GZipMiddleware, minimum_size=1000)
 
-# ─── Routers ──────────────────────────────────────────────────────────────────
+# ─── API v1 Router ────────────────────────────────────────────────────────────
+from fastapi import APIRouter
+api_router = APIRouter(prefix="/api/v1")
+
+# Include existing routes (migrating over time)
+api_router.include_router(health.router, tags=["Health"])
+api_router.include_router(match.router, prefix="/match", tags=["Matching"])
+api_router.include_router(embeddings.router, prefix="/embeddings", tags=["Embeddings"])
+
+app.include_router(api_router)
+
+# Also include health on root for simple load balancer checks
 app.include_router(health.router, tags=["Health"])
-app.include_router(match.router, prefix="/match", tags=["Matching"])
-app.include_router(embeddings.router, prefix="/embeddings", tags=["Embeddings"])
 
 
 if __name__ == "__main__":

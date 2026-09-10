@@ -20,13 +20,15 @@ export default defineConfig({
   },
   server: {
     port: 3000,
+    // Note: Proxy is only used in local development (npm run dev).
+    // In production (Vercel), requests go directly to VITE_API_URL.
     proxy: {
       '/api': {
-        target: 'http://localhost:5000',
+        target: 'http://localhost:8000',
         changeOrigin: true,
       },
       '/socket.io': {
-        target: 'http://localhost:5000',
+        target: 'http://localhost:8000',
         ws: true,
         changeOrigin: true,
       },

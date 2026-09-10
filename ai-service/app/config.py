@@ -16,11 +16,33 @@ class Settings(BaseSettings):
     # Matching
     SIMILARITY_THRESHOLD: float = 0.85
 
-    # Server callback
+    # Server callback (Deprecating slowly)
     SERVER_URL: str = "http://localhost:5000"
     SERVER_API_KEY: str = ""
 
-    # Redis (optional)
+    # Deployment / CORS
+    FRONTEND_URL: str = "http://localhost:3000"
+
+    # Database
+    DATABASE_URL: str = ""
+    DIRECT_DATABASE_URL: str = ""
+
+    # Supabase
+    SUPABASE_URL: str = ""
+    SUPABASE_ANON_KEY: str = ""
+    SUPABASE_SERVICE_ROLE_KEY: str = ""
+
+    # JWT
+    JWT_SECRET: str = ""
+    JWT_ALGORITHM: str = "HS256"
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
+
+    # Cloudinary
+    CLOUDINARY_CLOUD_NAME: str = ""
+    CLOUDINARY_API_KEY: str = ""
+    CLOUDINARY_API_SECRET: str = ""
+
+    # Redis
     REDIS_URL: str = ""
 
     # Logging
