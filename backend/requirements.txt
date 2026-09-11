@@ -10,7 +10,7 @@ torchvision==0.19.1
 open-clip-torch==2.26.1
 opencv-python-headless==4.10.0.84
 scikit-learn==1.5.1
-pydantic==2.8.2
+pydantic[email]==2.8.2
 pydantic-settings==2.4.0
 aiofiles==23.2.1
 # Database & Auth
