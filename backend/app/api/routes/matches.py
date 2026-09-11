@@ -59,17 +59,10 @@ async def analyze_item_matches(
             detail="You do not have permission to trigger analysis for this item"
         )
 
-    clip = getattr(request.app.state, "clip", None)
-    if not clip:
-        raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="AI CLIP model service is not available"
-        )
-
-    # Perform analysis
+    # Perform analysis (ML disabled for Free Tier)
     matches = await matching_service.analyze_item_and_find_matches(
         item_id=item_id,
-        clip=clip,
+        clip=None,
         db=db,
         threshold=threshold
     )

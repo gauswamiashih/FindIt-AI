@@ -36,39 +36,8 @@ class MatchingService:
         4. Persist Match records above threshold in DB (preventing duplicates).
         5. Trigger notification event hooks.
         """
-        match_thresh = threshold if threshold is not None else self.threshold
-
-        source_item = db.query(Item).filter(Item.id == item_id).first()
-        if not source_item:
-            logger.error(f"Item ID {item_id} not found for matching analysis.")
-            return []
-
-        # Opposite item type for candidate search
-        target_type = ItemType.found if source_item.item_type == ItemType.lost else ItemType.lost
-
-        # Candidate query: Active items of opposite type, excluding own items
-        candidates_query = db.query(Item).filter(
-            Item.item_type == target_type,
-            Item.status == ItemStatus.active,
-            Item.reported_by != source_item.reported_by
-        )
-
-        # Optional soft filter by category if there are many candidates
-        total_candidates_count = candidates_query.count()
-        if total_candidates_count > 50:
-            category_filtered = candidates_query.filter(Item.category.ilike(f"%{source_item.category}%")).all()
-            if len(category_filtered) >= 10:
-                candidates = category_filtered
-            else:
-                candidates = candidates_query.limit(50).all()
-        else:
-            candidates = candidates_query.all()
-
-        if not candidates:
-            logger.info(f"No candidates found for item ID {item_id}.")
-            return []
-
-        logger.info(f"Analyzing item {item_id} ({source_item.item_type.value}) against {len(candidates)} candidates.")
+        logger.info(f"Skipping AI matching for item {item_id}: ML features disabled for Free Tier.")
+        return []
 
         # Extract source item embeddings
         source_image_embs = []
