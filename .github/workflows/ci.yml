@@ -29,7 +29,7 @@ jobs:
 
       - name: Run Backend Tests
         env:
-          DATABASE_URL: sqlite:///:memory:
+          DATABASE_URL: "sqlite:///:memory:"
           SUPABASE_URL: https://mock.supabase.co
           SUPABASE_ANON_KEY: mock-anon-key
           SUPABASE_SERVICE_ROLE_KEY: mock-service-key
