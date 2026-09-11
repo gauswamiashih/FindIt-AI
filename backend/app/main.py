@@ -11,7 +11,6 @@ import logging
 
 from app.core.config import settings
 from app.api.routes import match, health, embeddings, auth
-from app.ai.clip_service import CLIPService
 
 # ─── Logging ──────────────────────────────────────────────────────────────────
 logging.basicConfig(
@@ -25,15 +24,11 @@ logger = logging.getLogger("findit.ai")
 # ─── App Lifespan ─────────────────────────────────────────────────────────────
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Load CLIP model on startup, clean up on shutdown."""
-    logger.info("🚀 Starting FindIt AI Service...")
-    logger.info(f"📦 Loading CLIP model: {settings.CLIP_MODEL}")
-    clip = CLIPService()
-    await clip.load_model()
-    app.state.clip = clip
-    logger.info("✅ CLIP model loaded and ready!")
+    """Placeholder lifespan."""
+    logger.info("🚀 Starting FindIt Service (AI Disabled for Free Tier)...")
+    app.state.clip = None
     yield
-    logger.info("🛑 Shutting down AI Service...")
+    logger.info("🛑 Shutting down Service...")
 
 
 # ─── FastAPI App ──────────────────────────────────────────────────────────────

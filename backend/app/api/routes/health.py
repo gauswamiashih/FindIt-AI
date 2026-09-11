@@ -1,7 +1,6 @@
 """Health check router"""
 from fastapi import APIRouter, Request
 from pydantic import BaseModel
-import torch
 
 router = APIRouter()
 
@@ -23,9 +22,9 @@ async def health_check(request: Request):
     return HealthResponse(
         status="ok",
         service="findit-api",
-        model_loaded=clip is not None and clip.model is not None,
-        device="cuda" if torch.cuda.is_available() else "cpu",
-        clip_model=settings.CLIP_MODEL if clip and clip.model else "not loaded",
+        model_loaded=False,
+        device="cpu",
+        clip_model="disabled_for_free_tier",
     )
 
 

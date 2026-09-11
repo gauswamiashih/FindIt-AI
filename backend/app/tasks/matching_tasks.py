@@ -8,22 +8,10 @@ import asyncio
 from app.tasks.celery_app import celery_app
 from app.db.database import SessionLocal
 from app.models import Item, AIProcessingStatus
-from app.ai.matching_service import matching_service
-from app.ai.clip_service import CLIPService
 
 logger = logging.getLogger("findit.tasks.matching")
 
-# Singleton worker-cached CLIP model instance
-_worker_clip_model = None
-
-def get_worker_clip():
-    global _worker_clip_model
-    if _worker_clip_model is None:
-        logger.info("Initializing worker-level CLIP model...")
-        clip = CLIPService()
-        asyncio.run(clip.load_model())
-        _worker_clip_model = clip
-    return _worker_clip_model
+# ML Disabled for Free Tier
 
 @celery_app.task(bind=True, max_retries=3, default_retry_delay=5)
 def process_item_ai_matching_task(self, item_id: int):
@@ -42,17 +30,9 @@ def process_item_ai_matching_task(self, item_id: int):
         item.ai_processing_status = AIProcessingStatus.processing
         db.commit()
 
-        # 2. Get worker CLIP model
-        clip = get_worker_clip()
-
-        # 3. Run AI matching pipeline
-        matches = asyncio.run(
-            matching_service.analyze_item_and_find_matches(
-                item_id=item_id,
-                clip=clip,
-                db=db
-            )
-        )
+        # 2. Free Tier Stub: Skip actual matching
+        logger.info(f"Skipping ML matching for {item_id} (Free Tier limitation)")
+        matches = []
 
         # 4. Update status to COMPLETED
         item.ai_processing_status = AIProcessingStatus.completed
