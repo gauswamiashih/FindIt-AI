@@ -13,6 +13,8 @@ import {
 import { useRef } from 'react'
 import { useDocumentTitle } from '../hooks/index'
 
+import { useAuth } from '../context/AuthContext'
+
 // ─── Data ─────────────────────────────────────────────────────────────────────
 const stats = [
   { value: '50K+', label: 'Items Processed', icon: HandHeart },
@@ -83,6 +85,7 @@ const testimonials = [
 // ─── Component ────────────────────────────────────────────────────────────────
 export default function LandingPage() {
   useDocumentTitle('Home')
+  const { user, isAuthenticated } = useAuth()
   const heroRef = useRef(null)
   const { scrollYProgress } = useScroll({
     target: heroRef,
@@ -109,12 +112,25 @@ export default function LandingPage() {
             <a href="#testimonials" className="hover:text-white transition-colors">Reviews</a>
           </div>
           <div className="flex items-center gap-3">
-            <Link to="/login" className="btn btn-ghost btn-sm text-dark-100/70 hover:text-white">
-              Sign In
-            </Link>
-            <Link to="/register" className="btn btn-primary btn-sm" id="landing-get-started-btn">
-              Get Started
-            </Link>
+            {isAuthenticated ? (
+              <Link to="/dashboard" className="btn btn-primary btn-sm gap-2" id="landing-dashboard-btn">
+                <img
+                  src={user?.avatar_url || user?.avatar?.url || `https://api.dicebear.com/8.x/initials/svg?seed=${encodeURIComponent(user?.name || 'U')}&backgroundColor=4f46e5`}
+                  alt={user?.name}
+                  className="w-5 h-5 rounded-full"
+                />
+                <span>Dashboard</span>
+              </Link>
+            ) : (
+              <>
+                <Link to="/login" className="btn btn-ghost btn-sm text-dark-100/70 hover:text-white">
+                  Sign In
+                </Link>
+                <Link to="/register" className="btn btn-primary btn-sm" id="landing-get-started-btn">
+                  Get Started
+                </Link>
+              </>
+            )}
           </div>
         </div>
       </nav>

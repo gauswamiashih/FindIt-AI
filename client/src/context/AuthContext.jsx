@@ -35,12 +35,20 @@ export const AuthProvider = ({ children }) => {
       setUser(appUser)
       localStorage.setItem('user', JSON.stringify(appUser))
     } catch (error) {
-      console.error('Failed to sync authenticated user with FastAPI:', error)
-      // Token invalid or backend unreachable
-      setUser(null)
-      setSession(null)
-      localStorage.removeItem('accessToken')
-      localStorage.removeItem('user')
+      console.warn('Backend sync failed, using Supabase user profile fallback:', error)
+      // Fallback: Use Supabase user identity so user remains authenticated
+      const sbUser = currentSession.user
+      const fallbackUser = {
+        id: sbUser?.id,
+        email: sbUser?.email,
+        name: sbUser?.user_metadata?.full_name || sbUser?.user_metadata?.name || sbUser?.email?.split('@')[0] || 'User',
+        avatar_url: sbUser?.user_metadata?.avatar_url || sbUser?.user_metadata?.picture || null,
+        avatar: { url: sbUser?.user_metadata?.avatar_url || sbUser?.user_metadata?.picture || null },
+        role: 'user',
+        is_verified: true,
+      }
+      setUser(fallbackUser)
+      localStorage.setItem('user', JSON.stringify(fallbackUser))
     } finally {
       setLoading(false)
     }
@@ -75,10 +83,11 @@ export const AuthProvider = ({ children }) => {
   // ─── Google Login ───────────────────────────────────────────────────────────
   const loginWithGoogle = useCallback(async () => {
     setLoading(true)
+    const redirectUrl = `${window.location.origin}/dashboard`
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: window.location.origin,
+        redirectTo: redirectUrl,
       },
     })
     if (error) {
